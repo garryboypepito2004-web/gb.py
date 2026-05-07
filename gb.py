@@ -337,6 +337,8 @@ PLATFORMS = {
     "📱 Other": []
 }
 
+platforms_list = list(PLATFORMS.keys())
+
 # ═══════════════════════════════════════════════════════
 # 3. UTILITY FUNCTIONS
 # ═══════════════════════════════════════════════════════
@@ -363,11 +365,16 @@ def detect_platform(url):
 
 def format_file_size(size_bytes):
     """Format file size in human readable format"""
-    for unit in ['B', 'KB', 'MB', 'GB']:
+    try:
+        size_bytes = float(size_bytes)
+    except (TypeError, ValueError):
+        return "0 B"
+
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
         if size_bytes < 1024.0:
-            return ".1f"
+            return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024.0
-    return ".1f"
+    return f"{size_bytes:.1f} PB"
 
 # ═══════════════════════════════════════════════════════
 # 4. DOWNLOAD LOGIC
@@ -580,6 +587,34 @@ with col1:
     else:
         st.markdown("### 💾 Offline Processing")
 
+    # Default values to avoid undefined variable errors
+    video_url = ""
+    selected_quality = list(QUALITY_OPTIONS.keys())[1]
+    cookie_file = None
+    uploaded_file = None
+    processing_type = "Convert Format"
+    output_format = "MP4"
+    audio_format = "MP3"
+    compression_level = 5
+    start_trim = "00:00:00"
+    end_trim = "00:01:00"
+    custom_filename = ""
+    video_codec = "H.264"
+    preset = "medium"
+    crf = 23
+    audio_only = False
+    audio_codec = "MP3"
+    audio_bitrate = "192k"
+    normalize_audio = False
+    remove_silence = False
+    audio_channels = "Stereo"
+    start_time = ""
+    end_time = ""
+    subtitle_download = False
+    embed_subtitles = False
+    thumbnail_download = False
+    metadata_preserve = True
+
     with st.container():
         st.markdown('<div class="feature-card glass-morphism">', unsafe_allow_html=True)
 
@@ -587,7 +622,7 @@ with col1:
             # Online Mode Inputs
             video_url = st.text_input(
                 "🔗 Paste Video URL",
-                placeholder="https://www.instagram.com/reels/...",
+                placeholder="https://www.youtube.com/watch?v=...",
                 help="Paste any video URL from supported platforms"
             )
 
