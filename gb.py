@@ -18,6 +18,22 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Initialize session state for mode
+if 'app_mode' not in st.session_state:
+    st.session_state.app_mode = 'online'
+
+# Check internet connectivity
+def check_internet():
+    """Check if internet connection is available"""
+    try:
+        requests.get("https://www.google.com", timeout=3)
+        return True
+    except:
+        return False
+
+# Internet status
+INTERNET_AVAILABLE = check_internet()
+
 # Custom CSS for modern styling
 st.markdown("""
 <style>
@@ -505,7 +521,46 @@ with col1:
     st.markdown("**Enterprise-grade video downloading with 4K support, batch processing, and advanced encoding options**")
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # Mode Selection
+    st.markdown("---")
+    st.markdown("### 🎯 Operating Mode")
+
+    mode_col1, mode_col2, mode_col3 = st.columns(3)
+
+    with mode_col1:
+        if st.button("🌐 Online Mode", use_container_width=True,
+                    type="primary" if st.session_state.app_mode == 'online' else "secondary"):
+            st.session_state.app_mode = 'online'
+            st.rerun()
+
+    with mode_col2:
+        if st.button("💾 Offline Mode", use_container_width=True,
+                    type="primary" if st.session_state.app_mode == 'offline' else "secondary"):
+            st.session_state.app_mode = 'offline'
+            st.rerun()
+
+    with mode_col3:
+        status_color = "🟢" if INTERNET_AVAILABLE else "🔴"
+        st.markdown(f"**Internet Status:** {status_color} {'Connected' if INTERNET_AVAILABLE else 'Offline'}")
+
+    # Mode-specific content
+    if st.session_state.app_mode == 'online':
+        if not INTERNET_AVAILABLE:
+            st.warning("⚠️ Internet connection required for Online Mode. Some features may not work.")
+        st.markdown("### 🌐 Online Mode Features")
+        st.markdown("✅ **Real-time downloads** from 50+ platforms")
+        st.markdown("✅ **Live video streaming** and processing")
+        st.markdown("✅ **Cloud integration** and remote access")
+        st.markdown("✅ **Automatic updates** and latest features")
+    else:
+        st.markdown("### 💾 Offline Mode Features")
+        st.markdown("✅ **Local file processing** and conversion")
+        st.markdown("✅ **Cached content** access")
+        st.markdown("✅ **Batch processing** of local files")
+        st.markdown("✅ **No internet required** for operation")
+
     # Platform Support
+    st.markdown("---")
     st.markdown("### 🌐 Supported Platforms")
     st.markdown('<div class="platform-grid">', unsafe_allow_html=True)
 
@@ -520,32 +575,71 @@ with col1:
 
     # Input Section
     st.markdown("---")
-    st.markdown("### 📥 Download Section")
+    if st.session_state.app_mode == 'online':
+        st.markdown("### 🌐 Online Download")
+    else:
+        st.markdown("### 💾 Offline Processing")
 
     with st.container():
         st.markdown('<div class="feature-card glass-morphism">', unsafe_allow_html=True)
 
-        # URL Input
-        video_url = st.text_input(
-            "🔗 Paste Video URL",
-            placeholder="https://www.instagram.com/reels/...",
-            help="Paste any video URL from supported platforms"
-        )
+        if st.session_state.app_mode == 'online':
+            # Online Mode Inputs
+            video_url = st.text_input(
+                "🔗 Paste Video URL",
+                placeholder="https://www.instagram.com/reels/...",
+                help="Paste any video URL from supported platforms"
+            )
 
-        # Quality Selection
-        selected_quality = st.selectbox(
-            "🎯 Select Quality",
-            list(QUALITY_OPTIONS.keys()),
-            index=1,
-            help="Choose your preferred video quality"
-        )
+            # Quality Selection
+            selected_quality = st.selectbox(
+                "🎯 Select Quality",
+                list(QUALITY_OPTIONS.keys()),
+                index=1,
+                help="Choose your preferred video quality"
+            )
 
-        # Cookie Upload
-        cookie_file = st.file_uploader(
-            "🍪 Cookies (for private content)",
-            type=["txt"],
-            help="Upload cookies.txt for private Instagram/Facebook videos"
-        )
+            # Cookie Upload
+            cookie_file = st.file_uploader(
+                "🍪 Cookies (for private content)",
+                type=["txt"],
+                help="Upload cookies.txt for private Instagram/Facebook videos"
+            )
+
+        else:
+            # Offline Mode Inputs
+            st.markdown("### 📁 Local File Processing")
+
+            uploaded_file = st.file_uploader(
+                "📤 Upload Video File",
+                type=["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v"],
+                help="Upload a local video file for processing"
+            )
+
+            if uploaded_file:
+                st.success(f"✅ File uploaded: {uploaded_file.name}")
+                st.info(f"📏 File size: {format_file_size(uploaded_file.size)}")
+
+            # Processing options for offline mode
+            processing_type = st.selectbox(
+                "🔄 Processing Type",
+                ["Convert Format", "Extract Audio", "Compress Video", "Trim Video", "Merge Files"],
+                help="Choose what to do with your uploaded file"
+            )
+
+            if processing_type == "Convert Format":
+                output_format = st.selectbox("Output Format", ["MP4", "AVI", "MKV", "MOV", "WEBM"])
+            elif processing_type == "Extract Audio":
+                audio_format = st.selectbox("Audio Format", ["MP3", "WAV", "AAC", "FLAC", "OGG"])
+            elif processing_type == "Compress Video":
+                compression_level = st.slider("Compression Level", 1, 10, 5,
+                                            help="Higher = smaller file, lower quality")
+            elif processing_type == "Trim Video":
+                trim_col1, trim_col2 = st.columns(2)
+                with trim_col1:
+                    start_trim = st.text_input("Start Time (HH:MM:SS)", "00:00:00")
+                with trim_col2:
+                    end_trim = st.text_input("End Time (HH:MM:SS)", "00:01:00")
 
         # Advanced Options with modern expander
         with st.expander("⚙️ Advanced Options", expanded=False):
@@ -686,29 +780,46 @@ with col1:
                     batch_status.text(f"✅ Batch complete! {successful} successful, {failed} failed")
                     st.success(f"Batch processing finished! ✅ {successful} | ❌ {failed}")
 
-        # Download Button
-        download_button = st.button(
-            "⬇️ START DOWNLOAD",
-            use_container_width=True,
-            type="primary"
-        )
+        # Action Button
+        if st.session_state.app_mode == 'online':
+            action_button = st.button(
+                "🚀 START DOWNLOAD",
+                use_container_width=True,
+                type="primary"
+            )
+            action_text = "download"
+        else:
+            action_button = st.button(
+                "🔄 START PROCESSING",
+                use_container_width=True,
+                type="primary"
+            )
+            action_text = "process"
 
         st.markdown('</div>', unsafe_allow_html=True)
-    # Download Progress and Results
-    if download_button:
-        if not video_url:
-            st.error("❌ Please enter a video URL")
-        else:
+
+    # Progress and Results
+    if action_button:
+        if st.session_state.app_mode == 'online':
+            if not video_url:
+                st.error("❌ Please enter a video URL")
+                st.stop()
             # Detect platform
             platform = detect_platform(video_url)
-            st.info(f"🎯 Detected platform: {platform}")
+            st.markdown(f'<div class="fade-in"><p class="glow-effect">🎯 Detected platform: {platform}</p></div>', unsafe_allow_html=True)
+        else:
+            if not uploaded_file:
+                st.error("❌ Please upload a video file")
+                st.stop()
+            platform = "Local File"
+            st.success(f"📁 Processing: {uploaded_file.name}")
 
-            # Handle cookies
-            cookie_path = None
-            if cookie_file:
-                cookie_path = "cookies.txt"
-                with open(cookie_path, "wb") as f:
-                    f.write(cookie_file.getvalue())
+        # Handle cookies (online mode only)
+        cookie_path = None
+        if st.session_state.app_mode == 'online' and cookie_file:
+            cookie_path = "cookies.txt"
+            with open(cookie_path, "wb") as f:
+                f.write(cookie_file.getvalue())
 
             try:
                 # Modern progress container
